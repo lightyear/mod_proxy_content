@@ -1,0 +1,76 @@
+mod_proxy_content is a fork of mod_proxy_html intended for use with modern
+web applications. It is based on mod_proxy_html 3.0.1, plus bug fixes made
+through version 3.1.2. Development was funded by the Council of Better
+Business Bureaus. It has been in production use at BBB since early 2009.
+
+The main drawback of mod_proxy_html for modern web applications is that it
+does not try to parse anything except HTML, though it is not unusual to
+reference URLs within the application in both Javascript and CSS files.
+While it is possible to force mod_proxy_html to parse these files and
+write regular expressions that safely remap the URLs, it is tedious and
+error-prone. mod_proxy_content solves this problem by doing the hard work
+for you.
+
+Configuration is the same as for mod_proxy_html, though mod_proxy_content
+will process Javascript and CSS files without using PROXY_HTML_FORCE. It
+uses the same mappings from ProxyHTMLURLMap directives, supplemented with
+regular expressions that match only relevant parts of each type of content.
+
+Here is a simple configuration, added to the sample proxy_html.conf, that
+serves the content from two private servers through a single public server.
+
+    # foo.example.com -> www.example.com/foo/
+    ProxyPass /foo/ http://foo.example.com/
+    ProxyPassReverse /foo/ http://foo.example.com/
+    ProxyHTMLURLMap http://foo.example.com /foo
+
+    # bar.example.com -> www.example.com/bar/
+    ProxyPass /bar/ http://bar.example.com/
+    ProxyPassReverse /bar/ http://bar.example.com/
+    ProxyHTMLURLMap http://bar.example.com /bar
+
+    <LocationMatch (?i)^/foo/>
+        ProxyPassReverse /
+        SetOutputFilter proxy-content
+        RequestHeader unset Accept-Encoding
+        ProxyHTMLURLMap / /foo/
+    </LocationMatch>
+
+    <LocationMatch (?i)^/bar/>
+        ProxyPassReverse /
+        SetOutputFilter proxy-content
+        RequestHeader unset Accept-Encoding
+        ProxyHTMLURLMap / /bar/
+    </LocationMatch>
+
+Sometimes, certain Javascript files will generate false hits and remapping
+these files will break your web application. You can exclude certain files
+from URL remapping:
+
+    <Location ~ /frame.js$>
+        ProxyHTMLFixups reset
+    </Location>
+
+
+The rest of this file is the original README that shipped with
+mod_proxy_html 3.1. WebThing DOES NOT support mod_proxy_content, though
+the original documentation is a useful resource to understanding reverse
+proxies and how to configure them.
+
+DOCUMENTATION for this module is at
+	http://apache.webthing.com/mod_proxy_html/
+
+UPGRADING: IMPORTANT NOTE
+
+If you are upgrading from mod_proxy_html 2.x (or 1.x), you will need
+some new configuration.  You can Include proxy_html.conf from this
+bundle in your httpd.conf (or apache.conf) to use Version 3 as a
+drop-in replacement for Version 2.
+
+
+WINDOWS USERS:
+
+You may need to install some prerequisite libraries before you can
+load mod_proxy_html into apache.  If you don't already have them,
+see the README at
+	http://apache.webthing.com/mod_proxy_html/windows/
